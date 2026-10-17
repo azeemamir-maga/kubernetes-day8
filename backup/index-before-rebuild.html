@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#070707">
+<meta name="description" content="Kubernetes Day 08 Storage Lab by Azeem Aamir: emptyDir vs PersistentVolumeClaim, with an interactive Pod lifecycle simulator.">
+<title>Kubernetes Day 08 | Storage Lab | Azeem Aamir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/script.js" defer></script>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="header">
+  <div class="container nav">
+    <a href="#home" class="brand"><span class="logo">AA</span><span><strong>Kubernetes Day 08</strong><small>Storage Lab</small></span></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false">☰</button>
+    <nav class="nav-links" id="nav">
+      <a href="#journey">Steps</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#lab">Simulator</a>
+      <a href="#manifests">YAML</a>
+      <a href="#lessons">Lessons</a>
+      <a class="gh" href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero" id="home">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="kicker"><span class="dot"></span>Hands-on DevOps project, Day 08</p>
+      <h1>Storage that<br><em>survives restarts.</em></h1>
+      <p class="lead">A practical Kubernetes lab comparing temporary <code>emptyDir</code> volumes with a PersistentVolumeClaim, with every command, the reasoning behind it, and a simulator you can break on purpose.</p>
+      <div class="actions">
+        <a class="btn btn-gold" href="#journey">Follow the steps</a>
+        <a class="btn btn-ghost" href="#lab">Try the simulator</a>
+      </div>
+      <div class="author"><span class="avatar">AA</span><span><strong>Azeem Aamir</strong><small>DevOps Engineer, learning Kubernetes in public</small></span></div>
+    </div>
+
+    <div class="terminal" aria-label="Sample terminal output">
+      <div class="term-bar"><span class="lights"><i></i><i></i><i></i></span><span>kubernetes-day8 : minikube</span></div>
+      <div class="term-body">
+        <p class="cmd-line">kubectl get pods</p>
+        <table><thead><tr><th>NAME</th><th>READY</th><th>STATUS</th></tr></thead>
+        <tbody><tr><td>day8-emptydir-pod</td><td>1/1</td><td class="ok">Running</td></tr>
+        <tr><td>day8-storage-pod</td><td>1/1</td><td class="ok">Running</td></tr></tbody></table>
+        <p class="cmd-line">kubectl get pvc</p>
+        <table><thead><tr><th>NAME</th><th>STATUS</th><th>CAPACITY</th></tr></thead>
+        <tbody><tr><td>day8-storage-pvc</td><td class="gold">Bound</td><td>1Gi</td></tr></tbody></table>
+        <p class="cmd-line">kubectl exec day8-storage-pod -- cat /data/message.txt</p>
+        <p class="out">Hello from persistent storage<span class="caret"></span></p>
+      </div>
+      <div class="term-foot">Sample output. Your names and age columns will differ.</div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="container stats-grid">
+    <div class="stat"><strong data-count="3">3</strong><span>Kubernetes manifests</span></div>
+    <div class="stat"><strong data-count="2">2</strong><span>Storage lifecycles compared</span></div>
+    <div class="stat"><strong data-count="1">1</strong><span>PersistentVolumeClaim, 1Gi</span></div>
+    <div class="stat"><strong data-count="6">6</strong><span>Steps from apply to publish</span></div>
+  </div>
+</section>
+
+<section class="block" id="journey">
+  <div class="container">
+    <div class="heading"><h2>The lab, step by step</h2><p>Run these in order from the project root. Each step says what you should see and why it matters.</p></div>
+    <ol class="steps">
+      <li class="step reveal"><span class="num">1</span><div>
+        <h3>Check the cluster is ready</h3>
+        <p>Containers are replaceable, so confirm Minikube is running before creating anything.</p>
+        <div class="cmd"><code>minikube status</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl get nodes</code><button class="copy">Copy</button></div>
+        <p class="expect"><b>Expect:</b> the node shows <code>Ready</code>.</p></div></li>
+      <li class="step reveal"><span class="num">2</span><div>
+        <h3>Create the emptyDir Pod</h3>
+        <p><code>day8-emptydir-pod</code> runs BusyBox and mounts an <code>emptyDir</code> volume at <code>/cache</code>. The volume lives exactly as long as the Pod.</p>
+        <div class="cmd"><code>kubectl apply -f k8s/emptydir-pod.yaml</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl describe pod day8-emptydir-pod</code><button class="copy">Copy</button></div>
+        <p class="expect"><b>Expect:</b> status <code>Running</code> and a <code>/cache</code> mount in the description.</p></div></li>
+      <li class="step reveal"><span class="num">3</span><div>
+        <h3>Request storage with a PVC</h3>
+        <p>The claim <code>day8-storage-pvc</code> asks for 1Gi. Kubernetes binds it to a matching PersistentVolume, or provisions one through the default StorageClass.</p>
+        <div class="cmd"><code>kubectl apply -f k8s/pvc.yaml</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl get pvc</code><button class="copy">Copy</button></div>
+        <p class="expect"><b>Expect:</b> STATUS <code>Bound</code>. If it stays <code>Pending</code>, run <code>kubectl describe pvc day8-storage-pvc</code> and read the Events.</p></div></li>
+      <li class="step reveal"><span class="num">4</span><div>
+        <h3>Mount the claim and verify the data</h3>
+        <p><code>day8-storage-pod</code> mounts the claim at <code>/data</code>. Check the real file inside the running container, not just the Pod status.</p>
+        <div class="cmd"><code>kubectl apply -f k8s/storage-pod.yaml</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl exec day8-storage-pod -- cat /data/message.txt</code><button class="copy">Copy</button></div>
+        <p class="expect"><b>Expect:</b> the message text prints. If the file is missing, write one first with <code>kubectl exec day8-storage-pod -- sh -c 'echo "Hello" > /data/message.txt'</code>.</p></div></li>
+      <li class="step reveal"><span class="num">5</span><div>
+        <h3>Run the lifecycle experiment</h3>
+        <p>Write a file, delete the Pod, recreate it, and compare. A container restart alone keeps emptyDir data; deleting the Pod does not.</p>
+        <div class="cmd"><code>kubectl exec day8-emptydir-pod -- sh -c 'echo test &gt; /cache/test.txt'</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl delete pod day8-emptydir-pod</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl apply -f k8s/emptydir-pod.yaml</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>kubectl exec day8-emptydir-pod -- ls -la /cache</code><button class="copy">Copy</button></div>
+        <p class="expect"><b>Expect:</b> <code>test.txt</code> is gone. Repeat with the storage Pod and <code>/data</code>; the file stays because the PVC remains.</p></div></li>
+      <li class="step reveal"><span class="num">6</span><div>
+        <h3>Document and publish</h3>
+        <p>Keep manifests, docs, and this showcase in version control.</p>
+        <div class="cmd"><code>git add README.md docs/ k8s/ showcase/</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>git commit -m "Rebuild Day 8 storage showcase"</code><button class="copy">Copy</button></div>
+        <div class="cmd"><code>git push</code><button class="copy">Copy</button></div></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block alt" id="architecture">
+  <div class="container">
+    <div class="heading"><h2>Two Pods, two lifecycles</h2><p>Same kind of container, different storage. The difference is who owns the data.</p></div>
+    <div class="arch-grid">
+      <article class="arch reveal">
+        <span class="tag">Temporary</span><h3>emptyDir</h3>
+        <div class="flow">
+          <div class="node"><small>Pod</small><strong>day8-emptydir-pod</strong></div>
+          <div class="arrow">mounts at /cache</div>
+          <div class="node hl"><small>Ephemeral volume</small><strong>emptyDir</strong></div>
+        </div>
+        <p>Created when the Pod is scheduled. Containers in the Pod can share it, and it survives container restarts. It is deleted when the Pod is removed.</p>
+      </article>
+      <article class="arch reveal">
+        <span class="tag">Persistent</span><h3>PersistentVolumeClaim</h3>
+        <div class="flow">
+          <div class="node"><small>Pod</small><strong>day8-storage-pod</strong></div>
+          <div class="arrow">mounts at /data</div>
+          <div class="node hl"><small>Claim</small><strong>day8-storage-pvc, 1Gi</strong></div>
+          <div class="arrow">binds to</div>
+          <div class="node"><small>Backing resource</small><strong>PersistentVolume</strong></div>
+        </div>
+        <p>The claim is its own object. Deleting the Pod leaves the claim and its data in place, subject to the reclaim policy of the volume.</p>
+      </article>
+    </div>
+    <div class="note reveal"><strong>Production note</strong><p>A PVC is not a backup. Durability depends on the storage driver, access mode, reclaim policy, and workload setup. Plan backups and recovery separately.</p></div>
+  </div>
+</section>
+
+<section class="block" id="lab">
+  <div class="container">
+    <div class="heading"><h2>Break it on purpose</h2><p>A simulation of the Day 08 experiment. Write a file, then restart the container or delete the Pod and watch which volume keeps the data.</p></div>
+    <div class="lab reveal">
+      <div class="lab-controls">
+        <button class="btn btn-gold" data-act="write">Write message.txt</button>
+        <button class="btn btn-ghost" data-act="restart">Restart container</button>
+        <button class="btn btn-ghost" data-act="delete">Delete and recreate Pod</button>
+        <button class="btn btn-ghost" data-act="reset">Reset</button>
+      </div>
+      <div class="lab-grid">
+        <div class="vol" id="vol-empty"><small>emptyDir at /cache</small><strong>day8-emptydir-pod</strong><pre id="out-empty">$ ls /cache
+(empty)</pre></div>
+        <div class="vol" id="vol-pvc"><small>PVC at /data</small><strong>day8-storage-pod</strong><pre id="out-pvc">$ ls /data
+(empty)</pre></div>
+      </div>
+      <div class="log" id="log" role="status" aria-live="polite">Ready. Start by writing a file.</div>
+    </div>
+  </div>
+</section>
+
+<section class="block alt" id="manifests">
+  <div class="container">
+    <div class="heading"><h2>The YAML files</h2><p>Reference versions of the three manifests. Your files in <code>k8s/</code> are the source of truth, so compare before applying.</p></div>
+    <div class="yaml reveal">
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="y1" aria-selected="true">emptydir-pod.yaml</button>
+        <button role="tab" class="tab" data-tab="y2" aria-selected="false">pvc.yaml</button>
+        <button role="tab" class="tab" data-tab="y3" aria-selected="false">storage-pod.yaml</button>
+      </div>
+      <div class="panel active" id="y1"><div class="panel-bar"><span>Defines a BusyBox Pod with a temporary volume at /cache</span><button class="copy">Copy</button></div><pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: day8-emptydir-pod
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: cache-volume
+          mountPath: /cache
+  volumes:
+    - name: cache-volume
+      emptyDir: {}</code></pre></div>
+      <div class="panel" id="y2"><div class="panel-bar"><span>Requests 1Gi of storage</span><button class="copy">Copy</button></div><pre><code>apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: day8-storage-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi</code></pre></div>
+      <div class="panel" id="y3"><div class="panel-bar"><span>Mounts the claim at /data</span><button class="copy">Copy</button></div><pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: day8-storage-pod
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: data-volume
+          mountPath: /data
+  volumes:
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: day8-storage-pvc</code></pre></div>
+      <p class="yaml-link"><a href="https://github.com/azeemamir-maga/kubernetes-day8/tree/main/k8s" target="_blank" rel="noopener noreferrer">Open the real manifests on GitHub ↗</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="lessons">
+  <div class="container">
+    <div class="heading"><h2>What Day 08 taught me</h2></div>
+    <div class="compare reveal">
+      <table>
+        <thead><tr><th></th><th>emptyDir</th><th>PersistentVolumeClaim</th></tr></thead>
+        <tbody>
+          <tr><th>Lifetime</th><td>Same as the Pod</td><td>Independent of the Pod</td></tr>
+          <tr><th>Container restart</th><td>Data kept</td><td>Data kept</td></tr>
+          <tr><th>Pod deleted</th><td>Data lost</td><td>Data kept</td></tr>
+          <tr><th>Best for</th><td>Scratch space, caches, sharing between containers</td><td>Databases, uploads, state that must last</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="lessons">
+      <article class="lesson reveal"><h3>Verify the real file</h3><p>A Running Pod proves nothing about data. Exec in and read the file.</p></article>
+      <article class="lesson reveal"><h3>Read the Events</h3><p>When a PVC is Pending, <code>kubectl describe</code> tells you why.</p></article>
+      <article class="lesson reveal"><h3>Persistence is not backup</h3><p>Reclaim policy and storage drivers decide what survives. Back up separately.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container reveal">
+    <h2>Learn it. Build it. Prove it.</h2>
+    <p>Practical Kubernetes skills, one project at a time.</p>
+    <a class="btn btn-gold" href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener noreferrer">Explore the repository ↗</a>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="container foot">
+    <div><strong>Designed and documented by Azeem Aamir</strong><small>Kubernetes, Docker, Linux, cloud automation</small></div>
+    <a href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  </div>
+</footer>
+<div class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

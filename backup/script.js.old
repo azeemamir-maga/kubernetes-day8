@@ -1,0 +1,304 @@
+/* =========================================================
+   KUBERNETES DAY 08 — AZEEM AAMIR
+   Interactive Website Effects
+   ========================================================= */
+
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+    /* -----------------------------------------------------
+       1. FOOTER YEAR
+    ----------------------------------------------------- */
+
+    const yearElements = document.querySelectorAll("[data-current-year]");
+
+    yearElements.forEach((element) => {
+        element.textContent = new Date().getFullYear();
+    });
+
+    /* -----------------------------------------------------
+       2. MOBILE NAVIGATION
+    ----------------------------------------------------- */
+
+    const menuToggle = document.querySelector(".menu-toggle");
+    const navLinks = document.querySelector(".nav-links");
+
+    if (menuToggle && navLinks) {
+        menuToggle.setAttribute("aria-expanded", "false");
+
+        menuToggle.addEventListener("click", () => {
+            const isOpen = navLinks.classList.toggle("open");
+
+            menuToggle.setAttribute("aria-expanded", String(isOpen));
+            menuToggle.setAttribute(
+                "aria-label",
+                isOpen ? "Close navigation menu" : "Open navigation menu"
+            );
+
+            menuToggle.textContent = isOpen ? "×" : "☰";
+        });
+
+        navLinks.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+                navLinks.classList.remove("open");
+                menuToggle.setAttribute("aria-expanded", "false");
+                menuToggle.setAttribute("aria-label", "Open navigation menu");
+                menuToggle.textContent = "☰";
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (
+                navLinks.classList.contains("open") &&
+                !navLinks.contains(event.target) &&
+                !menuToggle.contains(event.target)
+            ) {
+                navLinks.classList.remove("open");
+                menuToggle.setAttribute("aria-expanded", "false");
+                menuToggle.setAttribute("aria-label", "Open navigation menu");
+                menuToggle.textContent = "☰";
+            }
+        });
+    }
+
+    /* -----------------------------------------------------
+       3. SCROLL REVEAL ANIMATIONS
+    ----------------------------------------------------- */
+
+    const revealElements = document.querySelectorAll(
+        ".reveal, .reveal-left, .reveal-right"
+    );
+
+    const showElement = (element) => {
+        element.classList.add("visible");
+    };
+
+    if ("IntersectionObserver" in window) {
+        const revealObserver = new IntersectionObserver(
+            (entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        showElement(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            {
+                threshold: 0.12,
+                rootMargin: "0px 0px -35px 0px"
+            }
+        );
+
+        revealElements.forEach((element) => {
+            revealObserver.observe(element);
+        });
+    } else {
+        revealElements.forEach(showElement);
+    }
+
+    /* -----------------------------------------------------
+       4. STAGGERED CARD ANIMATIONS
+    ----------------------------------------------------- */
+
+    document.querySelectorAll(
+        ".cards-grid, .journey-grid, .checklist"
+    ).forEach((grid) => {
+        const cards = grid.querySelectorAll(
+            ".card, .journey-card, .checklist-item"
+        );
+
+        cards.forEach((card, index) => {
+            card.style.transitionDelay = `${(index % 4) * 90}ms`;
+        });
+    });
+
+    /* -----------------------------------------------------
+       5. ANIMATED NUMBER COUNTERS
+       Works with elements using data-count="4"
+    ----------------------------------------------------- */
+
+    const counters = document.querySelectorAll("[data-count]");
+
+    const animateCounter = (element) => {
+        if (element.dataset.animated === "true") {
+            return;
+        }
+
+        element.dataset.animated = "true";
+
+        const target = Number(element.dataset.count);
+
+        if (!Number.isFinite(target)) {
+            return;
+        }
+
+        const duration = 1200;
+        const startTime = performance.now();
+
+        const updateCounter = (currentTime) => {
+            const progress = Math.min(
+                (currentTime - startTime) / duration,
+                1
+            );
+
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            const currentValue = Math.round(target * easedProgress);
+
+            element.textContent = currentValue.toLocaleString();
+
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            } else {
+                element.textContent = target.toLocaleString();
+            }
+        };
+
+        requestAnimationFrame(updateCounter);
+    };
+
+    if ("IntersectionObserver" in window && counters.length > 0) {
+        const counterObserver = new IntersectionObserver(
+            (entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        animateCounter(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.5 }
+        );
+
+        counters.forEach((counter) => {
+            counterObserver.observe(counter);
+        });
+    } else {
+        counters.forEach(animateCounter);
+    }
+
+    /* -----------------------------------------------------
+       6. ACTIVE NAVIGATION LINK
+    ----------------------------------------------------- */
+
+    const sections = document.querySelectorAll("section[id]");
+    const navigationLinks = document.querySelectorAll(
+        '.nav-links a[href^="#"]'
+    );
+
+    if ("IntersectionObserver" in window && sections.length > 0) {
+        const sectionObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+
+                    const sectionId = entry.target.id;
+
+                    navigationLinks.forEach((link) => {
+                        const isActive =
+                            link.getAttribute("href") === `#${sectionId}`;
+
+                        link.classList.toggle("active", isActive);
+                    });
+                });
+            },
+            {
+                rootMargin: "-25% 0px -60% 0px",
+                threshold: 0
+            }
+        );
+
+        sections.forEach((section) => {
+            sectionObserver.observe(section);
+        });
+    }
+
+    /* -----------------------------------------------------
+       7. COPY CODE BUTTONS
+       Add data-copy-target="#code-id" to a button.
+    ----------------------------------------------------- */
+
+    const copyButtons = document.querySelectorAll("[data-copy-target]");
+
+    copyButtons.forEach((button) => {
+        button.addEventListener("click", async () => {
+            const selector = button.dataset.copyTarget;
+            const target = document.querySelector(selector);
+
+            if (!target) {
+                return;
+            }
+
+            const textToCopy = target.innerText || target.textContent || "";
+            const originalText = button.textContent;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                button.textContent = "Copied!";
+
+                window.setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1800);
+            } catch (error) {
+                console.error("Unable to copy text:", error);
+                button.textContent = "Copy unavailable";
+
+                window.setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1800);
+            }
+        });
+    });
+
+    /* -----------------------------------------------------
+       8. SMOOTH SCROLL FOR INTERNAL LINKS
+    ----------------------------------------------------- */
+
+    document.querySelectorAll('a[href^="#"]').forEach((link) => {
+        link.addEventListener("click", (event) => {
+            const href = link.getAttribute("href");
+
+            if (!href || href === "#") {
+                return;
+            }
+
+            const target = document.querySelector(href);
+
+            if (!target) {
+                return;
+            }
+
+            event.preventDefault();
+
+            target.scrollIntoView({
+                behavior: window.matchMedia(
+                    "(prefers-reduced-motion: reduce)"
+                ).matches ? "auto" : "smooth",
+                block: "start"
+            });
+        });
+    });
+
+    /* -----------------------------------------------------
+       9. CONSOLE BRANDING
+    ----------------------------------------------------- */
+
+    console.log(
+        "%c AZEEM AAMIR | KUBERNETES DAY 08 ",
+        "background:#080808;color:#e6c16c;font-size:16px;font-weight:bold;padding:12px;"
+    );
+
+    console.log(
+        "%c Learning Kubernetes Storage: emptyDir, PVCs and Persistence ",
+        "color:#d6ad52;font-size:12px;"
+    );
+
+    /* -----------------------------------------------------
+       10. PAGE READY
+    ----------------------------------------------------- */
+
+    document.documentElement.classList.add("js-ready");
+
+    console.log("Day 08 showcase initialized successfully.");
+});

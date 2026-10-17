@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kubernetes Day 8 hands-on storage lab by Azeem Aamir. Learn emptyDir, PersistentVolumeClaims, persistence testing and storage best practices.">
+  <title>Kubernetes Day 08 | Storage Lab — Azeem Aamir</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="navbar">
+    <a class="brand" href="#home"><span>K8S</span> / DAY 08</a>
+    <nav>
+      <a href="#journey">Learning Journey</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#manifest">YAML Files</a>
+      <a href="#lessons">Lessons</a>
+    </nav>
+    <a class="nav-cta" href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener">GitHub ↗</a>
+  </header>
+
+  <main>
+    <section class="hero section" id="home">
+      <div class="hero-copy reveal">
+        <div class="eyebrow"><span class="pulse"></span> HANDS-ON DEVOPS PROJECT · DAY 08</div>
+        <h1>Storage That<br>Survives <span class="gold-text">Restarts.</span></h1>
+        <p class="hero-description">
+          Understanding Kubernetes storage through practical experiments:
+          temporary <code>emptyDir</code> volumes, PersistentVolumeClaims,
+          mounted filesystems and persistence testing.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-gold" href="#journey">Explore The Lab ↓</a>
+          <a class="button button-outline" href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener">View Source ↗</a>
+        </div>
+        <div class="hero-author">
+          <div class="avatar">AA</div>
+          <div><strong>Azeem Aamir</strong><small>DevOps Engineer · Kubernetes Learner</small></div>
+        </div>
+      </div>
+
+      <div class="terminal-card reveal">
+        <div class="terminal-top">
+          <div class="window-dots"><i></i><i></i><i></i></div>
+          <span>kubernetes-day8 / terminal</span>
+          <span class="terminal-live">LAB NOTES</span>
+        </div>
+        <div class="terminal-body">
+          <p><span class="prompt">$</span> kubectl get pods</p>
+          <p class="muted">NAME                 READY   STATUS</p>
+          <p>day8-emptydir-pod    <b class="green">1/1</b>     <b class="green">Running</b></p>
+          <p>day8-storage-pod     <b class="green">1/1</b>     <b class="green">Running</b></p>
+          <br>
+          <p><span class="prompt">$</span> kubectl get pvc</p>
+          <p class="muted">NAME              STATUS   CAPACITY</p>
+          <p>day8-storage-pvc  <b class="green">Bound</b>    1Gi</p>
+          <br>
+          <p><span class="prompt">$</span> <span class="typing">Learning storage, one experiment at a time.</span><span class="cursor">▋</span></p>
+        </div>
+        <div class="terminal-footer"><span>● Minikube Lab</span><span>Environment: Local</span></div>
+      </div>
+
+      <div class="scroll-hint">SCROLL TO EXPLORE <span>↓</span></div>
+    </section>
+
+    <section class="stats section reveal">
+      <div class="stat"><strong data-count="3">0</strong><span>Kubernetes YAML files</span></div>
+      <div class="stat"><strong data-count="2">0</strong><span>Storage approaches</span></div>
+      <div class="stat"><strong data-count="1">0</strong><span>PersistentVolumeClaim</span></div>
+      <div class="stat"><strong>100%</strong><span>Hands-on learning focus</span></div>
+    </section>
+
+    <section class="section" id="journey">
+      <div class="section-heading reveal">
+        <span class="eyebrow">THE PRACTICAL WORK</span>
+        <h2>My <span class="gold-text">Learning Journey</span></h2>
+        <p>Follow the Day 8 lab in sequence. Each step explains what was configured and what the experiment teaches.</p>
+      </div>
+
+      <div class="timeline">
+        <article class="timeline-item reveal">
+          <div class="timeline-number">01</div>
+          <div class="timeline-content">
+            <span class="tag">FOUNDATION</span>
+            <h3>Understand Kubernetes Storage</h3>
+            <p>Containers can be replaced, so application data needs an intentional storage strategy. This lab compares temporary Pod storage with persistent storage.</p>
+            <div class="code-line">kubectl get pods</div>
+          </div>
+          <span class="step-status">LEARN</span>
+        </article>
+
+        <article class="timeline-item reveal">
+          <div class="timeline-number">02</div>
+          <div class="timeline-content">
+            <span class="tag">TEMPORARY STORAGE</span>
+            <h3>Create An emptyDir Volume</h3>
+            <p>The <code>day8-emptydir-pod</code> uses BusyBox and mounts an <code>emptyDir</code> volume at <code>/cache</code>. The directory exists for the lifetime of that Pod.</p>
+            <div class="code-line">kubectl apply -f k8s/emptydir-pod.yaml</div>
+            <div class="code-line">kubectl describe pod day8-emptydir-pod</div>
+          </div>
+          <span class="step-status">CONFIGURED</span>
+        </article>
+
+        <article class="timeline-item reveal">
+          <div class="timeline-number">03</div>
+          <div class="timeline-content">
+            <span class="tag">PERSISTENT STORAGE</span>
+            <h3>Request Storage With A PVC</h3>
+            <p>The <code>day8-storage-pvc</code> claim requests 1 GiB. Kubernetes reports it as <code>Bound</code>, meaning a backing volume was successfully assigned.</p>
+            <div class="code-line">kubectl get pvc</div>
+            <div class="code-line">kubectl describe pvc day8-storage-pvc</div>
+          </div>
+          <span class="step-status">BOUND</span>
+        </article>
+
+        <article class="timeline-item reveal">
+          <div class="timeline-number">04</div>
+          <div class="timeline-content">
+            <span class="tag">MOUNT & VERIFY</span>
+            <h3>Read Data From Persistent Storage</h3>
+            <p>The storage Pod mounts its claimed volume at <code>/data</code>. The lab verified that the test message could be read from the mounted path.</p>
+            <div class="code-line">kubectl exec day8-storage-pod -- cat /data/message.txt</div>
+            <div class="result-line">Kubernetes Day 8 - Persistent Storage Works!</div>
+          </div>
+          <span class="step-status">VERIFIED</span>
+        </article>
+
+        <article class="timeline-item reveal">
+          <div class="timeline-number">05</div>
+          <div class="timeline-content">
+            <span class="tag">LIFECYCLE EXPERIMENT</span>
+            <h3>Investigate emptyDir Behaviour</h3>
+            <p>After recreating the emptyDir Pod, <code>/cache/message.txt</code> was absent. The Pod was Running, but the test file was not there. This is a useful reminder to verify file creation before testing persistence.</p>
+            <div class="code-line">kubectl exec day8-emptydir-pod -- ls -la /cache</div>
+            <div class="note-line">Expected behaviour: deleting a Pod removes its emptyDir data. A replacement Pod gets a new emptyDir.</div>
+          </div>
+          <span class="step-status">INVESTIGATED</span>
+        </article>
+
+        <article class="timeline-item reveal">
+          <div class="timeline-number">06</div>
+          <div class="timeline-content">
+            <span class="tag">DOCUMENTATION & GIT</span>
+            <h3>Record Findings And Publish</h3>
+            <p>Documented the experiment, storage comparison and production considerations. Committed the Kubernetes manifests and documentation to GitHub.</p>
+            <div class="code-line">git add README.md docs/ k8s/</div>
+            <div class="code-line">git commit -m "Complete Kubernetes Day 8 persistent storage lab"</div>
+            <div class="code-line">git push</div>
+          </div>
+          <span class="step-status">PUBLISHED</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="architecture">
+      <div class="section-heading reveal">
+        <span class="eyebrow">HOW IT FITS TOGETHER</span>
+        <h2>Storage <span class="gold-text">Architecture</span></h2>
+        <p>Two separate Pods demonstrate two different storage lifecycles.</p>
+      </div>
+
+      <div class="architecture-grid">
+        <article class="architecture-card reveal">
+          <span class="architecture-label">01 / TEMPORARY</span>
+          <h3>emptyDir</h3>
+          <div class="arch-node">Pod: day8-emptydir-pod</div>
+          <div class="connector">↓ mounts at /cache</div>
+          <div class="arch-node storage-node">emptyDir Volume</div>
+          <p>Shares storage with containers in the same Pod. Data survives a container restart while the Pod remains, but not Pod deletion.</p>
+        </article>
+        <article class="architecture-card reveal">
+          <span class="architecture-label">02 / PERSISTENT</span>
+          <h3>PVC-Based Storage</h3>
+          <div class="arch-node">Pod: day8-storage-pod</div>
+          <div class="connector">↓ mounts at /data</div>
+          <div class="arch-node storage-node">PersistentVolumeClaim · 1Gi</div>
+          <p>Requests storage independently of the Pod. Data can remain available to replacement Pods when the volume and storage lifecycle support it.</p>
+        </article>
+      </div>
+      <p class="architecture-footnote">Note: A PVC is a storage request, not a backup. Actual persistence depends on the backing volume, storage driver, reclaim policy and workload configuration.</p>
+    </section>
+
+    <section class="section" id="manifest">
+      <div class="section-heading reveal">
+        <span class="eyebrow">INFRASTRUCTURE AS CODE</span>
+        <h2>Explore The <span class="gold-text">YAML Files</span></h2>
+        <p>These are the three manifests committed to the repository.</p>
+      </div>
+      <div class="manifest-grid">
+        <article class="manifest-card reveal">
+          <div class="file-icon">YAML</div>
+          <h3>emptydir-pod.yaml</h3>
+          <p>Defines a BusyBox Pod and temporary volume mounted at <code>/cache</code>.</p>
+          <a href="https://github.com/azeemamir-maga/kubernetes-day8/blob/main/k8s/emptydir-pod.yaml" target="_blank" rel="noopener">View Manifest ↗</a>
+        </article>
+        <article class="manifest-card reveal">
+          <div class="file-icon">YAML</div>
+          <h3>pvc.yaml</h3>
+          <p>Defines the PersistentVolumeClaim used to request 1 GiB of storage.</p>
+          <a href="https://github.com/azeemamir-maga/kubernetes-day8/blob/main/k8s/pvc.yaml" target="_blank" rel="noopener">View Manifest ↗</a>
+        </article>
+        <article class="manifest-card reveal">
+          <div class="file-icon">YAML</div>
+          <h3>storage-pod.yaml</h3>
+          <p>Defines the Pod that mounts the persistent claim at <code>/data</code>.</p>
+          <a href="https://github.com/azeemamir-maga/kubernetes-day8/blob/main/k8s/storage-pod.yaml" target="_blank" rel="noopener">View Manifest ↗</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="lessons">
+      <div class="section-heading reveal">
+        <span class="eyebrow">KEY TAKEAWAYS</span>
+        <h2>What I <span class="gold-text">Learned</span></h2>
+      </div>
+      <div class="lessons-grid">
+        <article class="lesson-card reveal"><span>01</span><h3>emptyDir</h3><p>Temporary storage scoped to a Pod's lifetime.</p></article>
+        <article class="lesson-card reveal"><span>02</span><h3>PVC</h3><p>Requests persistent storage through Kubernetes storage resources.</p></article>
+        <article class="lesson-card reveal"><span>03</span><h3>Verification</h3><p>Check Pod status, volume mounts and actual files—not just whether a Pod is Running.</p></article>
+        <article class="lesson-card reveal"><span>04</span><h3>Production Readiness</h3><p>Persistence does not automatically provide backups, high availability or disaster recovery.</p></article>
+      </div>
+    </section>
+
+    <section class="closing section reveal">
+      <span class="eyebrow">DAY 08 · COMPLETE</span>
+      <h2>Learn It. Build It.<br><span class="gold-text">Prove It.</span></h2>
+      <p>Building practical Kubernetes skills one project at a time.</p>
+      <div class="hero-actions">
+        <a class="button button-gold" href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener">Explore GitHub Repository ↗</a>
+        <a class="button button-outline" id="linkedin-link" href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn Article ↗</a>
+      </div>
+      <small class="linkedin-note">Replace the LinkedIn homepage link with your actual Day 8 article URL in js/script.js.</small>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="#home"><span>K8S</span> / DAY 08</a>
+    <p>Designed & documented by <strong>Azeem Aamir</strong></p>
+    <p class="footer-small">Kubernetes · Docker · Linux · Cloud Automation</p>
+    <a href="https://github.com/azeemamir-maga/kubernetes-day8" target="_blank" rel="noopener">GitHub ↗</a>
+  </footer>
+</body>
+</html>
